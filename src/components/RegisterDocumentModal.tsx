@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { registerDocument } from "@/services/web3Service";
 import { hashDocumentData } from "@/utils/hash";
 import { BLOCKCHAIN_CONFIG } from "@/config/blockchain";
+import { useMetaMask } from "@/hooks/useMetaMask";
 import QRCode from "qrcode.react";
 
 interface RegisterDocumentModalProps {
@@ -20,6 +21,8 @@ interface RegisterDocumentModalProps {
 }
 
 const RegisterDocumentModal = ({ isOpen, onClose }: RegisterDocumentModalProps) => {
+  const { getSigner, isConnected, walletAddress } = useMetaMask();
+  
   const [formData, setFormData] = useState({
     ownerName: "",
     documentType: "",
@@ -65,13 +68,26 @@ const RegisterDocumentModal = ({ isOpen, onClose }: RegisterDocumentModalProps) 
       return;
     }
 
+    if (!isConnected) {
+      toast.error("Veuillez connecter votre wallet MetaMask");
+      return;
+    }
+
     setIsRegistering(true);
 
     try {
+      // Obtenir le signer depuis le hook MetaMask
+      const signer = await getSigner();
+      if (!signer) {
+        toast.error("Impossible d'obtenir le signer MetaMask");
+        return;
+      }
+
       const result = await registerDocument(
         documentHash,
         formData.ownerName,
-        formData.documentType
+        formData.documentType,
+        signer
       );
       
       setTransactionHash(result.transactionHash);
@@ -107,6 +123,27 @@ const RegisterDocumentModal = ({ isOpen, onClose }: RegisterDocumentModalProps) 
             Enregistrer un Document sur la Blockchain
           </DialogTitle>
         </DialogHeader>
+        
+        {/* Statut MetaMask */}
+        {!isConnected && (
+          <Card className="bg-yellow-50 border-yellow-200">
+            <CardContent className="p-4">
+              <p className="text-yellow-800 text-sm">
+                ⚠️ Veuillez connecter votre wallet MetaMask pour enregistrer un document sur la blockchain.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {isConnected && (
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="p-4">
+              <p className="text-green-800 text-sm">
+                ✅ Wallet connecté : {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </p>
+            </CardContent>
+          </Card>
+        )}
         
         <form onSubmit={handleRegister} className="space-y-6">
           {/* Informations du document */}
@@ -188,7 +225,6 @@ const RegisterDocumentModal = ({ isOpen, onClose }: RegisterDocumentModalProps) 
             </CardContent>
           </Card>
 
-          {/* QR Code */}
           {documentHash && (
             <Card className="bg-blue-50">
               <CardContent className="p-4 text-center">
@@ -203,7 +239,6 @@ const RegisterDocumentModal = ({ isOpen, onClose }: RegisterDocumentModalProps) 
             </Card>
           )}
 
-          {/* Transaction hash */}
           {transactionHash && (
             <Card className="bg-green-50 border-green-200">
               <CardContent className="p-4">
@@ -236,14 +271,13 @@ const RegisterDocumentModal = ({ isOpen, onClose }: RegisterDocumentModalProps) 
             </Card>
           )}
 
-          {/* Boutons d'action */}
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => { resetForm(); onClose(); }}>
               Annuler
             </Button>
             <Button 
               type="submit" 
-              disabled={isRegistering || !documentHash}
+              disabled={isRegistering || !documentHash || !isConnected}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
             >
               {isRegistering ? (

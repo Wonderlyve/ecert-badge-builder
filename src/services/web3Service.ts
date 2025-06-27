@@ -12,8 +12,8 @@ export const initializeWeb3 = () => {
   contract = new ethers.Contract(BLOCKCHAIN_CONFIG.CONTRACT_ADDRESS, ContractABI.abi, provider);
 };
 
-// Connecter MetaMask
-export const connectWallet = async () => {
+// Connecter MetaMask et retourner le signer
+export const getMetaMaskSigner = async () => {
   if (!window.ethereum) {
     throw new Error('MetaMask n\'est pas installé');
   }
@@ -36,10 +36,17 @@ export const connectWallet = async () => {
   }
 };
 
-// Enregistrer un document sur la blockchain
-export const registerDocument = async (hash: string, ownerName: string, docType: string) => {
+// Enregistrer un document sur la blockchain avec un signer fourni
+export const registerDocument = async (hash: string, ownerName: string, docType: string, signerProvided?: ethers.Signer) => {
   try {
-    const signer = await connectWallet();
+    // Utiliser le signer fourni ou obtenir un nouveau signer
+    const signer = signerProvided || await getMetaMaskSigner();
+    
+    // Initialiser le contrat si ce n'est pas déjà fait
+    if (!contract) {
+      initializeWeb3();
+    }
+    
     const writeContract = contract.connect(signer);
     
     const tx = await writeContract.registerDocument(ownerName, hash, docType);
@@ -73,10 +80,4 @@ export const verifyDocument = async (hash: string) => {
     console.error('Erreur lors de la vérification:', error);
     throw error;
   }
-};
-
-// Générer le hash d'un document
-export const generateDocumentHash = (data: string): string => {
-  const CryptoJS = require('crypto-js');
-  return CryptoJS.SHA256(data).toString();
 };
