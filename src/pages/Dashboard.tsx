@@ -22,6 +22,27 @@ import { Link } from 'react-router-dom';
 import RegisterDocumentModal from '@/components/RegisterDocumentModal';
 import CreateCertificateModal from '@/components/CreateCertificateModal';
 
+const getRoleDisplayName = (role?: string) => {
+  switch (role) {
+    case 'admin':
+      return 'Administrateur';
+    case 'establishment':
+      return 'Établissement';
+    case 'ministry_education':
+      return 'Ministère de l\'Éducation';
+    case 'ministry_land':
+      return 'Ministère des Terres';
+    case 'student':
+      return 'Étudiant';
+    case 'citizen':
+      return 'Citoyen';
+    case 'employer':
+      return 'Employeur';
+    default:
+      return 'Utilisateur';
+  }
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);

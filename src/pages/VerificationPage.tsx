@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,8 +10,7 @@ import {
   FileText,
   Shield,
   QrCode,
-  Copy,
-  Blockchain
+  Copy
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { verifyDocument } from '@/services/web3Service';
@@ -136,7 +134,7 @@ const VerificationPage = () => {
         <Card className="shadow-lg border-0">
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-xl text-gray-900 flex items-center justify-center">
-              <Blockchain className="w-5 h-5 mr-2" />
+              <Shield className="w-5 h-5 mr-2" />
               Entrez le hash du document
             </CardTitle>
             <CardDescription>
