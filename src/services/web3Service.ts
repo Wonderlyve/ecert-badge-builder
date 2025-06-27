@@ -1,18 +1,15 @@
 
 import { ethers } from 'ethers';
 import ContractABI from '../abis/DocumentCertifier.json';
-
-// Configuration du contrat
-const RPC_URL = 'https://polygon-mumbai.infura.io/v3/YOUR_INFURA_KEY';
-const CONTRACT_ADDRESS = '0x1234567890123456789012345678901234567890'; // Remplacer par l'adresse réelle
+import { BLOCKCHAIN_CONFIG } from '../config/blockchain';
 
 let provider: ethers.providers.JsonRpcProvider;
 let contract: ethers.Contract;
 
 // Initialisation du provider et du contrat
 export const initializeWeb3 = () => {
-  provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-  contract = new ethers.Contract(CONTRACT_ADDRESS, ContractABI.abi, provider);
+  provider = new ethers.providers.JsonRpcProvider(BLOCKCHAIN_CONFIG.RPC_URL);
+  contract = new ethers.Contract(BLOCKCHAIN_CONFIG.CONTRACT_ADDRESS, ContractABI.abi, provider);
 };
 
 // Connecter MetaMask
@@ -28,8 +25,8 @@ export const connectWallet = async () => {
     
     // Vérifier si on est sur Mumbai
     const network = await web3Provider.getNetwork();
-    if (network.chainId !== 80001) {
-      throw new Error('Veuillez vous connecter au réseau Polygon Mumbai');
+    if (network.chainId !== BLOCKCHAIN_CONFIG.NETWORK_ID) {
+      throw new Error(`Veuillez vous connecter au réseau ${BLOCKCHAIN_CONFIG.NETWORK_NAME}`);
     }
     
     return signer;

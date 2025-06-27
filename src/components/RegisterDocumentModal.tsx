@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Hash, Upload } from "lucide-react";
+import { Shield, Hash, Upload, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { registerDocument, generateDocumentHash } from "@/services/web3Service";
+import { registerDocument } from "@/services/web3Service";
+import { hashDocumentData } from "@/utils/hash";
+import { BLOCKCHAIN_CONFIG } from "@/config/blockchain";
 import QRCode from "qrcode.react";
 
 interface RegisterDocumentModalProps {
@@ -34,17 +36,19 @@ const RegisterDocumentModal = ({ isOpen, onClose }: RegisterDocumentModalProps) 
   };
 
   const generateHash = () => {
-    const dataToHash = JSON.stringify({
+    if (!formData.ownerName || !formData.documentType) {
+      toast.error("Veuillez remplir au moins le nom du propriétaire et le type de document");
+      return;
+    }
+
+    const hash = hashDocumentData({
       ownerName: formData.ownerName,
       documentType: formData.documentType,
       documentContent: formData.documentContent,
-      institution: formData.institution,
-      timestamp: Date.now()
+      institution: formData.institution
     });
     
-    const hash = generateDocumentHash(dataToHash);
     setDocumentHash(hash);
-    
     toast.success("Hash généré avec succès");
   };
 
@@ -209,9 +213,25 @@ const RegisterDocumentModal = ({ isOpen, onClose }: RegisterDocumentModalProps) 
                 <p className="text-sm text-green-700 mb-2">
                   Hash de transaction:
                 </p>
-                <div className="p-2 bg-white rounded border font-mono text-xs break-all">
+                <div className="p-2 bg-white rounded border font-mono text-xs break-all mb-3">
                   {transactionHash}
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="w-full"
+                >
+                  <a 
+                    href={`${BLOCKCHAIN_CONFIG.BLOCK_EXPLORER}/tx/${transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Voir sur PolygonScan
+                  </a>
+                </Button>
               </CardContent>
             </Card>
           )}

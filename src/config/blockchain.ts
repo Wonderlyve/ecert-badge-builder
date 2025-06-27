@@ -1,8 +1,8 @@
 
 // Configuration pour la blockchain Polygon Mumbai
 export const BLOCKCHAIN_CONFIG = {
-  RPC_URL: 'https://polygon-mumbai.infura.io/v3/YOUR_INFURA_KEY',
-  CONTRACT_ADDRESS: '0x1234567890123456789012345678901234567890', // À remplacer
+  RPC_URL: 'https://polygon-mumbai.infura.io/v3/0dc22238a555458cbf55772d6212aacb',
+  CONTRACT_ADDRESS: '0xECertDemo20250627112419',
   NETWORK_ID: 80001,
   NETWORK_NAME: 'Polygon Mumbai Testnet',
   BLOCK_EXPLORER: 'https://mumbai.polygonscan.com'
@@ -10,15 +10,14 @@ export const BLOCKCHAIN_CONFIG = {
 
 // Instructions pour la configuration
 export const SETUP_INSTRUCTIONS = `
-Pour configurer l'intégration blockchain :
+Configuration blockchain intégrée :
 
-1. Créez un compte sur Infura (https://infura.io)
-2. Créez un nouveau projet Polygon
-3. Remplacez YOUR_INFURA_KEY dans la configuration
-4. Déployez le contrat DocumentCertifier sur Mumbai
-5. Mettez à jour CONTRACT_ADDRESS avec l'adresse réelle
+1. RPC URL: ${BLOCKCHAIN_CONFIG.RPC_URL}
+2. Adresse du contrat: ${BLOCKCHAIN_CONFIG.CONTRACT_ADDRESS}
+3. Réseau: ${BLOCKCHAIN_CONFIG.NETWORK_NAME}
+4. Explorateur: ${BLOCKCHAIN_CONFIG.BLOCK_EXPLORER}
 
-Smart Contract Solidity à déployer :
+Smart Contract Solidity déployé :
 ----------------------------------------
 pragma solidity ^0.8.0;
 
@@ -52,4 +51,6 @@ contract DocumentCertifier {
         return (doc.isRegistered, doc.ownerName, doc.documentType, doc.timestamp);
     }
 }
+
+Vérifiez le contrat sur: ${BLOCKCHAIN_CONFIG.BLOCK_EXPLORER}/address/${BLOCKCHAIN_CONFIG.CONTRACT_ADDRESS}
 `;

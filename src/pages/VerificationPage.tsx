@@ -125,7 +125,7 @@ const VerificationPage = () => {
               Vérification Blockchain
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Vérifiez l'authenticité d'un document enregistré sur la blockchain Polygon
+              Vérifiez l'authenticité d'un document enregistré sur la blockchain Polygon Mumbai
             </p>
           </div>
         </div>
@@ -267,6 +267,24 @@ const VerificationPage = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-blue-700">Timestamp</span>
                         <span className="text-blue-900">{verificationResult.timestamp}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-700">Contrat</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          asChild
+                          className="h-auto p-0 text-blue-600 hover:text-blue-800"
+                        >
+                          <a 
+                            href={`https://mumbai.polygonscan.com/address/0xECertDemo20250627112419`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Voir contrat
+                          </a>
+                        </Button>
                       </div>
                     </div>
                   </div>

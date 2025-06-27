@@ -30,9 +30,3 @@ export interface Web3Error {
   message: string;
   data?: any;
 }
-
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
