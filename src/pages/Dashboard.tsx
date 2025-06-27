@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,12 +15,17 @@ import {
   GraduationCap,
   MapPin,
   School,
-  Landmark
+  Landmark,
+  Shield
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import RegisterDocumentModal from '@/components/RegisterDocumentModal';
+import CreateCertificateModal from '@/components/CreateCertificateModal';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   const getDashboardContent = () => {
     switch (user?.role) {
@@ -43,22 +48,51 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div className="p-6 space-y-8">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
-            Tableau de bord
+          <h1 className="text-2xl font-bold text-gray-900">
+            Tableau de bord - {user?.name}
           </h1>
           <p className="text-gray-600 mt-1">
-            Bienvenue, {user?.name}
+            {getRoleDisplayName(user?.role)} - {user?.institution}
           </p>
         </div>
-        <div className="mt-4 sm:mt-0">
-          <QuickActions role={user?.role} />
+        
+        <div className="flex space-x-3">
+          {(user?.role === 'admin' || user?.role === 'ministry_education' || user?.role === 'ministry_land') && (
+            <>
+              <Button 
+                onClick={() => setShowCreateModal(true)}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Créer Certificat
+              </Button>
+              <Button 
+                onClick={() => setShowRegisterModal(true)}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Enregistrer sur Blockchain
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       {getDashboardContent()}
+      
+      {/* Modals */}
+      <CreateCertificateModal 
+        isOpen={showCreateModal} 
+        onClose={() => setShowCreateModal(false)} 
+      />
+      
+      <RegisterDocumentModal 
+        isOpen={showRegisterModal} 
+        onClose={() => setShowRegisterModal(false)} 
+      />
     </div>
   );
 };

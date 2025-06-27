@@ -9,25 +9,21 @@ import {
   CheckCircle, 
   AlertCircle, 
   FileText,
-  Calendar,
-  Building,
-  User,
   Shield,
   QrCode,
-  Copy
+  Copy,
+  Blockchain
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { verifyDocument } from '@/services/web3Service';
 
 interface VerificationResult {
-  id: string;
-  title: string;
-  type: string;
-  institution: string;
-  recipient: string;
-  date: string;
-  status: 'valid' | 'revoked' | 'not_found';
-  verificationDate: string;
-  hashSignature?: string;
+  isValid: boolean;
+  ownerName: string;
+  documentType: string;
+  timestamp: number;
+  registrationDate: string;
+  blockchainVerified: boolean;
 }
 
 const VerificationPage = () => {
@@ -35,68 +31,54 @@ const VerificationPage = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
 
-  const mockResults: { [key: string]: VerificationResult } = {
-    'ECR-2024-001': {
-      id: 'ECR-2024-001',
-      title: 'Licence en Informatique',
-      type: 'Diplôme',
-      institution: 'Université de Kinshasa',
-      recipient: 'Jean Kabila Kabange',
-      date: '2024-06-15',
-      status: 'valid',
-      verificationDate: new Date().toISOString(),
-      hashSignature: 'a1b2c3d4e5f6789...'
-    },
-    'ECR-2024-002': {
-      id: 'ECR-2024-002',
-      title: 'Master en Gestion',
-      type: 'Diplôme',
-      institution: 'UNIKIN - Faculté des Sciences Économiques',
-      recipient: 'Marie Tshisekedi Mbuyi',
-      date: '2024-05-20',
-      status: 'revoked',
-      verificationDate: new Date().toISOString(),
-      hashSignature: 'x9y8z7w6v5u4321...'
-    }
-  };
-
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!searchCode.trim()) {
-      toast.error('Veuillez entrer un code de vérification');
+      toast.error('Veuillez entrer un hash de document');
       return;
     }
 
     setIsSearching(true);
 
-    // Simulation de la recherche
-    setTimeout(() => {
-      const result = mockResults[searchCode.toUpperCase()];
+    try {
+      const result = await verifyDocument(searchCode.trim());
       
-      if (result) {
-        setVerificationResult(result);
-        if (result.status === 'valid') {
-          toast.success('Document vérifié avec succès !');
-        } else if (result.status === 'revoked') {
-          toast.error('Attention : Ce document a été révoqué');
-        }
+      if (result.isValid) {
+        setVerificationResult({
+          isValid: true,
+          ownerName: result.ownerName,
+          documentType: result.documentType,
+          timestamp: result.timestamp,
+          registrationDate: result.registrationDate,
+          blockchainVerified: true
+        });
+        toast.success('Document vérifié avec succès sur la blockchain !');
       } else {
         setVerificationResult({
-          id: searchCode,
-          title: '',
-          type: '',
-          institution: '',
-          recipient: '',
-          date: '',
-          status: 'not_found',
-          verificationDate: new Date().toISOString()
+          isValid: false,
+          ownerName: '',
+          documentType: '',
+          timestamp: 0,
+          registrationDate: '',
+          blockchainVerified: false
         });
-        toast.error('Document non trouvé ou code invalide');
+        toast.error('Document non trouvé sur la blockchain');
       }
-      
+    } catch (error: any) {
+      console.error('Erreur de vérification:', error);
+      setVerificationResult({
+        isValid: false,
+        ownerName: '',
+        documentType: '',
+        timestamp: 0,
+        registrationDate: '',
+        blockchainVerified: false
+      });
+      toast.error(`Erreur: ${error.message || 'Impossible de vérifier le document'}`);
+    } finally {
       setIsSearching(false);
-    }, 2000);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -109,38 +91,27 @@ const VerificationPage = () => {
     setVerificationResult(null);
   };
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case 'valid':
-        return {
-          color: 'bg-green-100 text-green-800 border-green-300',
-          icon: <CheckCircle className="w-4 h-4" />,
-          label: 'Valide et authentique',
-          bgColor: 'bg-green-50 border-green-200'
-        };
-      case 'revoked':
-        return {
-          color: 'bg-red-100 text-red-800 border-red-300',
-          icon: <AlertCircle className="w-4 h-4" />,
-          label: 'Révoqué',
-          bgColor: 'bg-red-50 border-red-200'
-        };
-      case 'not_found':
-        return {
-          color: 'bg-gray-100 text-gray-800 border-gray-300',
-          icon: <AlertCircle className="w-4 h-4" />,
-          label: 'Non trouvé',
-          bgColor: 'bg-gray-50 border-gray-200'
-        };
-      default:
-        return {
-          color: 'bg-gray-100 text-gray-800 border-gray-300',
-          icon: <AlertCircle className="w-4 h-4" />,
-          label: 'Inconnu',
-          bgColor: 'bg-gray-50 border-gray-200'
-        };
+  const getStatusInfo = (result: VerificationResult | null) => {
+    if (!result) return null;
+    
+    if (result.isValid && result.blockchainVerified) {
+      return {
+        color: 'bg-green-100 text-green-800 border-green-300',
+        icon: <CheckCircle className="w-4 h-4" />,
+        label: 'Valide et vérifié sur blockchain',
+        bgColor: 'bg-green-50 border-green-200'
+      };
+    } else {
+      return {
+        color: 'bg-red-100 text-red-800 border-red-300',
+        icon: <AlertCircle className="w-4 h-4" />,
+        label: 'Non trouvé sur la blockchain',
+        bgColor: 'bg-red-50 border-red-200'
+      };
     }
   };
+
+  const statusInfo = getStatusInfo(verificationResult);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white p-4 lg:p-8">
@@ -153,10 +124,10 @@ const VerificationPage = () => {
           
           <div>
             <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-              Vérification Publique
+              Vérification Blockchain
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Vérifiez l'authenticité d'un diplôme, certificat ou titre foncier de la République Démocratique du Congo
+              Vérifiez l'authenticité d'un document enregistré sur la blockchain Polygon
             </p>
           </div>
         </div>
@@ -164,11 +135,12 @@ const VerificationPage = () => {
         {/* Formulaire de recherche */}
         <Card className="shadow-lg border-0">
           <CardHeader className="text-center pb-4">
-            <CardTitle className="text-xl text-gray-900">
-              Entrez le code de vérification
+            <CardTitle className="text-xl text-gray-900 flex items-center justify-center">
+              <Blockchain className="w-5 h-5 mr-2" />
+              Entrez le hash du document
             </CardTitle>
             <CardDescription>
-              Le code se trouve généralement sur le document ou dans le QR code
+              Le hash est généré lors de l'enregistrement du document sur la blockchain
             </CardDescription>
           </CardHeader>
           
@@ -177,10 +149,10 @@ const VerificationPage = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
-                  placeholder="Ex: ECR-2024-001"
+                  placeholder="Ex: 0xa1b2c3d4e5f6789..."
                   value={searchCode}
                   onChange={(e) => setSearchCode(e.target.value)}
-                  className="pl-12 h-14 text-lg"
+                  className="pl-12 h-14 text-lg font-mono"
                   disabled={isSearching}
                 />
               </div>
@@ -193,62 +165,37 @@ const VerificationPage = () => {
                 {isSearching ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Vérification en cours...
+                    Vérification sur blockchain...
                   </div>
                 ) : (
                   <>
-                    <Search className="w-5 h-5 mr-2" />
-                    Vérifier le document
+                    <Shield className="w-5 h-5 mr-2" />
+                    Vérifier sur Blockchain
                   </>
                 )}
               </Button>
             </form>
-
-            {/* Codes d'exemple */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-sm font-medium text-blue-900 mb-2">Codes d'exemple pour test :</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSearchCode('ECR-2024-001')}
-                  className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
-                >
-                  ECR-2024-001 (Valide)
-                </button>
-                <button
-                  onClick={() => setSearchCode('ECR-2024-002')}
-                  className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200 transition-colors"
-                >
-                  ECR-2024-002 (Révoqué)
-                </button>
-                <button
-                  onClick={() => setSearchCode('ECR-2024-999')}
-                  className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors"
-                >
-                  ECR-2024-999 (Non trouvé)
-                </button>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
         {/* Résultat de la vérification */}
-        {verificationResult && (
-          <Card className={`shadow-lg border-2 ${getStatusInfo(verificationResult.status).bgColor}`}>
+        {verificationResult && statusInfo && (
+          <Card className={`shadow-lg border-2 ${statusInfo.bgColor}`}>
             <CardHeader className="text-center">
               <div className="flex items-center justify-center space-x-2 mb-2">
-                {getStatusInfo(verificationResult.status).icon}
+                {statusInfo.icon}
                 <CardTitle className="text-xl">
-                  Résultat de la vérification
+                  Résultat de la vérification blockchain
                 </CardTitle>
               </div>
               
-              <Badge className={`${getStatusInfo(verificationResult.status).color} border text-base py-2 px-4`}>
-                {getStatusInfo(verificationResult.status).label}
+              <Badge className={`${statusInfo.color} border text-base py-2 px-4`}>
+                {statusInfo.label}
               </Badge>
             </CardHeader>
             
             <CardContent className="space-y-6">
-              {verificationResult.status !== 'not_found' ? (
+              {verificationResult.isValid ? (
                 <>
                   {/* Informations du document */}
                   <div className="bg-white rounded-lg p-6 border border-gray-200">
@@ -260,104 +207,71 @@ const VerificationPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-600">Titre</label>
-                          <p className="text-gray-900 font-medium">{verificationResult.title}</p>
+                          <label className="text-sm font-medium text-gray-600">Propriétaire</label>
+                          <p className="text-gray-900 font-medium">{verificationResult.ownerName}</p>
                         </div>
                         
                         <div>
-                          <label className="text-sm font-medium text-gray-600">Type</label>
-                          <p className="text-gray-900">{verificationResult.type}</p>
+                          <label className="text-sm font-medium text-gray-600">Type de document</label>
+                          <p className="text-gray-900">{verificationResult.documentType}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Date d'enregistrement</label>
+                          <p className="text-gray-900">
+                            {new Date(verificationResult.registrationDate).toLocaleDateString('fr-FR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
                         </div>
                         
                         <div>
-                          <label className="text-sm font-medium text-gray-600">Code ID</label>
+                          <label className="text-sm font-medium text-gray-600">Hash du document</label>
                           <div className="flex items-center space-x-2">
-                            <p className="text-gray-900 font-mono">{verificationResult.id}</p>
+                            <p className="text-gray-900 font-mono text-sm break-all">{searchCode}</p>
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => copyToClipboard(verificationResult.id)}
+                              onClick={() => copyToClipboard(searchCode)}
                             >
                               <Copy className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Bénéficiaire</label>
-                          <p className="text-gray-900 font-medium">{verificationResult.recipient}</p>
-                        </div>
-                        
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Institution</label>
-                          <p className="text-gray-900">{verificationResult.institution}</p>
-                        </div>
-                        
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Date d'émission</label>
-                          <p className="text-gray-900">
-                            {new Date(verificationResult.date).toLocaleDateString('fr-FR', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Informations de sécurité */}
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <h4 className="font-medium text-gray-900 mb-3 flex items-center">
-                      <Shield className="w-4 h-4 text-green-600 mr-2" />
-                      Sécurité et traçabilité
+                  {/* Informations blockchain */}
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h4 className="font-medium text-blue-900 mb-3 flex items-center">
+                      <Shield className="w-4 h-4 text-blue-600 mr-2" />
+                      Vérification blockchain
                     </h4>
                     
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Vérifié le</span>
-                        <span className="text-gray-900">
-                          {new Date(verificationResult.verificationDate).toLocaleString('fr-FR')}
-                        </span>
+                        <span className="text-blue-700">Réseau</span>
+                        <span className="text-blue-900 font-medium">Polygon Mumbai Testnet</span>
                       </div>
                       
-                      {verificationResult.hashSignature && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-600">Hash blockchain</span>
-                          <div className="flex items-center space-x-1">
-                            <span className="text-gray-900 font-mono text-xs">
-                              {verificationResult.hashSignature}
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => copyToClipboard(verificationResult.hashSignature!)}
-                            >
-                              <Copy className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {verificationResult.status === 'revoked' && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="flex items-start space-x-3">
-                        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-                        <div>
-                          <h4 className="font-medium text-red-900">Document révoqué</h4>
-                          <p className="text-sm text-red-700 mt-1">
-                            Ce document a été révoqué par l'institution émettrice. Il n'est plus valide.
-                            Contactez l'institution pour plus d'informations.
-                          </p>
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-700">Statut</span>
+                        <span className="text-green-700 font-medium">✓ Vérifié</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-700">Timestamp</span>
+                        <span className="text-blue-900">{verificationResult.timestamp}</span>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </>
               ) : (
                 <div className="text-center py-8">
@@ -366,10 +280,10 @@ const VerificationPage = () => {
                     Document non trouvé
                   </h3>
                   <p className="text-gray-600 mb-4">
-                    Le code <strong>{verificationResult.id}</strong> ne correspond à aucun document dans notre base de données.
+                    Le hash <strong>{searchCode}</strong> ne correspond à aucun document enregistré sur la blockchain.
                   </p>
                   <div className="text-sm text-gray-500">
-                    <p>Vérifiez que le code est correct ou contactez l'institution émettrice.</p>
+                    <p>Vérifiez que le hash est correct ou que le document a bien été enregistré.</p>
                   </div>
                 </div>
               )}
@@ -394,10 +308,10 @@ const VerificationPage = () => {
           <CardContent className="p-6">
             <div className="text-center">
               <Shield className="w-12 h-12 text-blue-200 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Service de vérification officiel</h3>
+              <h3 className="text-lg font-semibold mb-2">Sécurisé par la blockchain</h3>
               <p className="text-blue-100 text-sm">
-                Cette plateforme est sécurisée par la technologie blockchain et certifiée par 
-                le Ministère de l'Enseignement Supérieur et Universitaire de la RDC.
+                Les documents sont enregistrés de manière immuable sur la blockchain Polygon, 
+                garantissant leur authenticité et leur intégrité.
               </p>
             </div>
           </CardContent>
